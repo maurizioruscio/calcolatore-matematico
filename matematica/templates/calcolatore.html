@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Calcolatore di Integrali e Derivate</title>
+</head>
+<body>
+    <h1>Calcolatore di Integrali e Derivate</h1>
+    <form method="post">
+     {% csrf_token %}
+    <label for="espressione">Inserisci un'espressione:</label><br>
+    <input type="text" id="espressione" name="espressione" required><br><br>
+
+    <label>Seleziona l'operazione:</label><br>
+    <input type="radio" id="derivata" name="operazione" value="derivata" checked>
+    <label for="derivata">Derivata</label><br>
+    <input type="radio" id="integrale" name="operazione" value="integrale">
+    <label for="integrale">Integrale</label><br>
+    <input type="radio" id="equazione_differenziale" name="operazione" value="equazione_differenziale">
+    <label for="equazione_differenziale">Equazione Differenziale</label><br>
+    <input type="radio" id="sistema_equazioni" name="operazione" value="sistema_equazioni">
+    <label for="sistema_equazioni">Sistema di Equazioni</label><br><br>
+
+    <!-- Campi aggiuntivi per equazioni differenziali -->
+    <div id="campo_eq_diff" style="display: none;">
+        <label for="variabile_dipendente">Variabile dipendente (es: y):</label><br>
+        <input type="text" id="variabile_dipendente" name="variabile_dipendente"><br><br>
+    </div>
+
+    <!-- Campi aggiuntivi per sistemi di equazioni -->
+    <div id="campo_sistema_eq" style="display: none;">
+        <label for="equazioni">Inserisci le equazioni del sistema, separate da punto e virgola:</label><br>
+        <input type="text" id="equazioni" name="equazioni" placeholder="eq1; eq2; eq3"><br><br>
+        <label for="variabili">Inserisci le variabili, separate da virgola:</label><br>
+        <input type="text" id="variabili_sistema" name="variabili_sistema" placeholder="x, y, z"><br><br>
+    </div>
+
+    <input type="submit" value="Calcola">
+    </form>
+    {% if risultato %}
+        <h2>Risultato:</h2>
+        <p>{{ risultato }}</p>
+        {% if graph %}
+        <h2>Grafico:</h2>
+        <img src="data:image/png;base64,{{ graph }}" alt="Grafico della funzione"/>
+        {% endif %}
+    {% endif %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const operazioni = document.getElementsByName('operazione');
+    const campoEqDiff = document.getElementById('campo_eq_diff');
+    const campoSistemaEq = document.getElementById('campo_sistema_eq');
+
+    operazioni.forEach(op => {
+        op.addEventListener('change', function() {
+            if (this.value === 'equazione_differenziale') {
+                campoEqDiff.style.display = 'block';
+                campoSistemaEq.style.display = 'none';
+            } else if (this.value === 'sistema_equazioni') {
+                campoEqDiff.style.display = 'none';
+                campoSistemaEq.style.display = 'block';
+            } else {
+                campoEqDiff.style.display = 'none';
+                campoSistemaEq.style.display = 'none';
+            }
+        });
+    });
+});
+</script>
+
+    <h2>Storico dei Calcoli</h2>
+    <table border="1">
+        <tr>
+            <th>Data</th>
+            <th>Operazione</th>
+            <th>Espressione</th>
+            <th>Risultato</th>
+            <th>Tempo di Calcolo (s)</th> 
+        </tr>
+        {% for calcolo in calcoli %}
+        <tr>
+            <td>{{ calcolo.data|date:"d/m/Y H:i:s" }}</td>
+            <td>{{ calcolo.operazione }}</td>
+            <td>{{ calcolo.espressione }}</td>
+            <td>{{ calcolo.risultato }}</td>
+            <td>{{ calcolo.tempo_calcolo|floatformat:3 }}</td> 
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
+
