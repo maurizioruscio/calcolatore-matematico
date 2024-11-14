@@ -80,7 +80,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'calcolatore_db',
         'USER': 'calcolatore_user',
-        'PASSWORD': 'Password1_',
+        'PASSWORD': '<password>',
         'HOST': 'localhost',
         'PORT': '3306',
         'OPTIONS': {
