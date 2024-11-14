@@ -11,6 +11,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from io import BytesIO
 import base64
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from .serializers import CalcoloSerializer
 
 def calcolatore_view(request):
     risultato = ''
@@ -114,3 +117,45 @@ def calcolatore_view(request):
     calcoli = Calcolo.objects.order_by('-data')[:10]
 
     return render(request, 'calcolatore.html', {'risultato': risultato, 'calcoli': calcoli, 'graph': graph})
+
+@api_view(['POST'])
+def calcolatore_api(request):
+    if request.method == 'POST':
+        espressione = request.data.get('espressione')
+        operazione = request.data.get('operazione')
+
+        risultato = ''
+        try:
+            x = symbols('x')
+            funzione = sympify(espressione)
+            start_time = time.time()
+
+            if operazione == 'derivata':
+                risultato_sympy = diff(funzione, x)
+                risultato = str(risultato_sympy)
+            elif operazione == 'integrale':
+                risultato_sympy = integrate(funzione, x)
+                risultato = str(risultato_sympy)
+            else:
+                return Response({'errore': 'Operazione non supportata.'}, status=400)
+
+            end_time = time.time()
+            tempo_calcolo = end_time - start_time
+
+            # Salva il calcolo nel database
+            calcolo = Calcolo.objects.create(
+                espressione=espressione,
+                operazione=operazione,
+                risultato=risultato,
+                tempo_calcolo=tempo_calcolo
+            )
+            calcolo.save()
+
+            # Serializza e restituisci il risultato
+            serializer = CalcoloSerializer(calcolo)
+            return Response(serializer.data, status=200)
+
+        except SympifyError:
+            return Response({'errore': 'Espressione non valida.'}, status=400)
+        except Exception as e:
+            return Response({'errore': f'Errore durante il calcolo: {str(e)}'}, status=500)

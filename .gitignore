@@ -1,0 +1,37 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+
+# Django stuff:
+*.log
+*.pot
+*.pyc
+*.pyc.*
+*.pyo
+*.pyo.*
+*.pyd
+*.sqlite3
+db.sqlite3
+
+# Ignore the following directories:
+staticfiles/
+media/
+node_modules/
+bower_components/
+
+# Secret settings
+*.env
+.env
+settings.py
+
+# IDE files
+.idea/
+.vscode/
+
+# MacOS files
+.DS_Store
