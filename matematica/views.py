@@ -5,8 +5,7 @@ from .models import Calcolo
 import time
 
 import matplotlib
-matplotlib.use('Agg')  # Imposta il backend di Matplotlib per l'ambiente senza interfaccia grafica
-
+matplotlib.use('Agg')  
 import matplotlib.pyplot as plt
 import numpy as np
 from io import BytesIO
