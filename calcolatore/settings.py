@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'matematica',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -72,6 +73,17 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'calcolatore.wsgi.application'
 
+# calcolatore/settings.py
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',  # Permette l'accesso a tutte le API
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',  # Risposte in formato JSON
+        'rest_framework.renderers.BrowsableAPIRenderer',  # Renderer navigabile
+    ],
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
