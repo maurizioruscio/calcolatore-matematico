@@ -5,6 +5,51 @@
     <title>Calcolatore di Integrali e Derivate</title>
 </head>
 <body>
+        <!-- Barra di Navigazione -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'calcolatore' %}">Calcolatore</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'steam_reformer' %}">Steam Reformer</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'calcolatore_api' %}">Calcolatore API</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'steam_reformer_api' %}">Steam Reformer API</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'steam_reformer_calcoli_api' %}">Storico Steam Reformer API</a>
+                    </li>
+                    <!-- Se hai configurato Swagger o Redoc, aggiungi anche questi link -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'schema-swagger-ui' %}">Swagger UI</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'schema-redoc' %}">ReDoc</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenuto Principale -->
+    <div class="container mt-4">
+        <!-- Qui va il contenuto esistente della tua homepage -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+ 
     <h1>Calcolatore di Integrali e Derivate</h1>
     <form method="post">
      {% csrf_token %}
