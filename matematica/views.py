@@ -474,7 +474,7 @@ def steam_reformer_simulation_view(request):
                     y0,
                     #method='RK45',
                     method='BDF',
-                    t_eval=np.linspace(0, W, 5)
+                    t_eval=np.linspace(0, W, 100)
                 )
                 end_time = time.time()
                 tempo_calcolo = end_time - start_time
