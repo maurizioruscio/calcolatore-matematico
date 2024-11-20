@@ -19,6 +19,7 @@ from .forms import SteamReformerForm
 import pybobyqa
 from .models import BOBYQACalcolo
 from .forms import BOBYQAForm
+from .forms import SteamReformerSimulationForm
 from scipy.integrate import solve_ivp
 import plotly.offline as opy
 import plotly.graph_objs as go
