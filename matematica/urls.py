@@ -4,6 +4,7 @@ from . import views
 urlpatterns = [
     path('', views.calcolatore_view, name='calcolatore'),
     path('steam-reformer/', views.steam_reformer_view, name='steam_reformer'),
+    path('bobyqa/', views.bobyqa_view, name='bobyqa'), 
     
     # API endpoints
     path('api/calcolatore/', views.calcolatore_api, name='calcolatore_api'),

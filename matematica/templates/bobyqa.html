@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Calcolo con Py-BOBYQA{% endblock %}
+
+{% block content %}
+    <h1>Calcolo con Py-BOBYQA</h1>
+    <form method="POST" class="mt-4">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Calcola</button>
+    </form>
+
+    {% if risultato %}
+        <div class="mt-4">
+            <h2>Risultato:</h2>
+            <pre>{{ risultato }}</pre>
+            <p><strong>Tempo di Calcolo:</strong> {{ tempo_calcolo|floatformat:4 }} secondi</p>
+        </div>
+    {% endif %}
+
+    <div class="mt-4">
+        <h2>Ultimi Calcoli</h2>
+        <ul class="list-group">
+            {% for calcolo in calcoli %}
+                <li class="list-group-item">
+                    <strong>x0:</strong> {{ calcolo.x0 }}<br>
+                    <strong>Risultato:</strong> {{ calcolo.risultato }}<br>
+                    <strong>Tempo di Calcolo:</strong> {{ calcolo.tempo_calcolo|floatformat:4 }} s<br>
+                    <small>{{ calcolo.data }}</small>
+                </li>
+            {% empty %}
+                <li class="list-group-item">Nessun calcolo effettuato.</li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}

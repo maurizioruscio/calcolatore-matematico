@@ -24,3 +24,13 @@ class SteamReformerCalcolo(models.Model):
 
     def __str__(self):
         return f"Steam Reformer Calcolo - {self.data.strftime('%d/%m/%Y %H:%M:%S')}"
+    
+class BOBYQACalcolo(models.Model):
+    x0 = models.TextField()  # Punto di partenza (come stringa)
+    risultato = models.TextField()  # Risultato della minimizzazione
+    tempo_calcolo = models.FloatField()
+    data = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"BOBYQA Calcolo ID {self.id} - x0: {self.x0}"
+

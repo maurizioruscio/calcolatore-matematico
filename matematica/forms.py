@@ -31,3 +31,11 @@ class SteamReformerForm(forms.Form):
         if portata <= 0:
             raise ValidationError('La portata molare del vapore deve essere maggiore di zero.')
         return portata
+
+class BOBYQAForm(forms.Form):
+    x0 = forms.CharField(
+        label='Punto di Partenza (x0)',
+        help_text='Inserisci il punto di partenza come elenco di numeri separati da virgole. Ad esempio: -1.2, 1.0',
+        widget=forms.TextInput(attrs={'placeholder': '-1.2, 1.0'})
+    )
+

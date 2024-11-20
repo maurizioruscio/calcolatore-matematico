@@ -16,6 +16,10 @@ from .serializers import CalcoloSerializer, SteamReformerCalcoloSerializer
 from django.contrib import messages
 from .utils import calcola_rapporto_vapore_carbonio, calcola_calore_di_reazione
 from .forms import SteamReformerForm
+import pybobyqa
+from .models import BOBYQACalcolo
+from .forms import BOBYQAForm
+
 
 def calcolatore_view(request):
     # La tua implementazione attuale
@@ -197,6 +201,56 @@ def steam_reformer_view(request):
         'risultato': risultato,
         'calcoli': calcoli,
         'graph': graph
+    })
+
+def bobyqa_view(request):
+    risultato = ''
+    tempo_calcolo = 0
+    if request.method == 'POST':
+        form = BOBYQAForm(request.POST)
+        if form.is_valid():
+            x0_input = form.cleaned_data['x0']
+            try:
+                # Converte la stringa di input in un array numpy
+                x0_list = [float(x.strip()) for x in x0_input.split(',')]
+                x0 = np.array(x0_list)
+
+                # Definisce la funzione obiettivo (Rosenbrock)
+                def rosenbrock(x):
+                    return 100.0 * (x[1] - x[0] ** 2) ** 2 + (1.0 - x[0]) ** 2
+
+                # Esegue il calcolo e misura il tempo
+                start_time = time.time()
+                soln = pybobyqa.solve(rosenbrock, x0)
+                end_time = time.time()
+                tempo_calcolo = end_time - start_time
+
+                # Salva il calcolo nel database
+                calcolo = BOBYQACalcolo.objects.create(
+                    x0=str(x0_input),
+                    risultato=str(soln),
+                    tempo_calcolo=tempo_calcolo
+                )
+                calcolo.save()
+
+                risultato = soln
+                messages.success(request, 'Calcolo eseguito con successo!')
+            except Exception as e:
+                messages.error(request, f'Errore durante il calcolo: {str(e)}')
+                risultato = ''
+        else:
+            messages.error(request, 'Dati del form non validi.')
+    else:
+        form = BOBYQAForm()
+
+    # Recupera gli ultimi 10 calcoli
+    calcoli = BOBYQACalcolo.objects.all().order_by('-data')[:10]
+
+    return render(request, 'bobyqa.html', {
+        'form': form,
+        'risultato': risultato,
+        'tempo_calcolo': tempo_calcolo,
+        'calcoli': calcoli
     })
 
 @csrf_exempt
