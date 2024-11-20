@@ -39,3 +39,10 @@ class BOBYQAForm(forms.Form):
         widget=forms.TextInput(attrs={'placeholder': '-1.2, 1.0'})
     )
 
+class SteamReformerSimulationForm(forms.Form):
+    pressione = forms.FloatField(label='Pressione (Pa)', initial=101325)
+    temperatura_iniziale = forms.FloatField(label='Temperatura Iniziale (K)', initial=800)
+    frazione_molare_CH4 = forms.FloatField(label='Frazione Molare CH4', initial=0.2)
+    frazione_molare_H2O = forms.FloatField(label='Frazione Molare H2O', initial=0.8)
+    peso_catalizzatore = forms.FloatField(label='Peso del Catalizzatore (kg)', initial=100)
+    flusso_molare_totale = forms.FloatField(label='Flusso Molare Totale (mol/s)', initial=10)

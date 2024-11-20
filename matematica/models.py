@@ -34,3 +34,19 @@ class BOBYQACalcolo(models.Model):
     def __str__(self):
         return f"BOBYQA Calcolo ID {self.id} - x0: {self.x0}"
 
+class SteamReformerSimulation(models.Model):
+    # Parametri di input
+    pressione = models.FloatField()
+    temperatura_iniziale = models.FloatField()
+    frazione_molare_CH4 = models.FloatField()
+    frazione_molare_H2O = models.FloatField()
+    peso_catalizzatore = models.FloatField()
+    flusso_molare_totale = models.FloatField()
+
+    # Risultati
+    risultato = models.TextField()
+    tempo_calcolo = models.FloatField()
+    data = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Simulazione ID {self.id} - {self.data}"
