@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from sympy import symbols, sympify, diff, integrate, SympifyError, lambdify
-from .models import Calcolo, SteamReformerCalcolo, SteamReformerSimulation, BOBYQACalcolo
+from .models import Calcolo, SteamReformerCalcolo
 import time
 import matplotlib
 matplotlib.use('Agg')  # Utilizza un backend senza interfaccia grafica
@@ -23,7 +23,7 @@ from .forms import SteamReformerSimulationForm
 from scipy.integrate import solve_ivp
 import plotly.offline as opy
 import plotly.graph_objs as go
-
+from .models import SteamReformerSimulation
 
 def calcolatore_view(request):
     # La tua implementazione attuale
@@ -257,7 +257,7 @@ def bobyqa_view(request):
         'calcoli': calcoli
     })
 
-def steam_reformer_simulation_view(request):
+
     risultato = None
     tempo_calcolo = 0
     graph_div = None  # Variabile per il grafico interattivo
@@ -362,6 +362,177 @@ def steam_reformer_simulation_view(request):
         'tempo_calcolo': tempo_calcolo,
         'simulazioni': simulazioni,
         'graph_div': graph_div
+    })
+
+# Definisci le costanti di equilibrio
+def equilibrium_constants(T):
+    # T in Kelvin
+    K_SR = np.exp(19088 / T - 19.36)     # Steam Reforming
+    K_WGS = np.exp(4400 / T - 4.07)      # Water Gas Shift
+    K_Met = np.exp(-11680 / T + 13.65)   # Metanazione
+    return np.array([K_SR, K_WGS, K_Met])
+
+# Definisci le velocità di reazione
+def reaction_rates(P, T, y):
+    # P: pressione totale (Pa)
+    # T: temperatura (K)
+    # y: frazioni molari (array)
+
+    # Costanti cinetiche (esempio, da adattare con dati reali)
+    k_SR = 1e5 * np.exp(-24000 / (8.314 * T))    # Steam Reforming
+    k_WGS = 1e3 * np.exp(-20000 / (8.314 * T))   # Water Gas Shift
+    k_Met = 1e2 * np.exp(-22000 / (8.314 * T))   # Metanazione
+
+    # Pressioni parziali (Pa)
+    p = y * P
+
+    # Velocità di reazione (mol/kg_cat·s)
+    r_SR = k_SR * p[0] * p[1]  # CH4 * H2O
+    r_WGS = k_WGS * p[2] * p[1]  # CO * H2O
+    r_Met = k_Met * p[2] * p[4]**3  # CO * H2^3
+
+    return np.array([r_SR, r_WGS, r_Met])
+
+# Definisci la funzione modello per le ODE
+def model(z, y_vars, P, W, F_tot):
+    # z: posizione lungo il reattore (kg di catalizzatore)
+    # y_vars: array contenente le frazioni molari [y_CH4, y_H2O, y_CO, y_CO2, y_H2, T]
+    # P: pressione totale (Pa)
+    # W: peso totale del catalizzatore (kg)
+    # F_tot: flusso molare totale (mol/s)
+
+    y = y_vars[:5]  # Frazioni molari
+    T = y_vars[5]   # Temperatura (K)
+
+    # Matrice stechiometrica (componenti x reazioni)
+    nu = np.array([
+        [-1,  0,  1],  # CH4
+        [-1, -1,  1],  # H2O
+        [ 1, -1, -1],  # CO
+        [ 0,  1, -1],  # CO2
+        [ 3,  1, -3],  # H2
+    ])
+
+    # Calcolo delle costanti di equilibrio
+    K_eq = equilibrium_constants(T)
+
+    # Calcolo delle velocità di reazione
+    rates = reaction_rates(P, T, y)
+
+    # Bilancio molare per ogni componente
+    dydz = np.zeros(6)
+    for i in range(5):  # Per ogni componente
+        dydz[i] = np.dot(nu[i, :], rates) / F_tot
+
+    # Bilancio energetico (semplificato)
+    delta_H = np.array([206000, -41000, -206000])  # J/mol
+    Q = np.dot(delta_H, rates)  # Calore di reazione totale (J/kg_cat·s)
+
+    Cp_tot = 100  # J/mol·K (approssimato)
+    dydz[5] = -Q / (F_tot * Cp_tot)
+
+    return dydz
+
+def steam_reformer_simulation_view(request):
+    risultato = None
+    tempo_calcolo = 0
+    plot_html = ""  # Per il grafico interattivo
+
+    if request.method == 'POST':
+        form = SteamReformerSimulationForm(request.POST)
+        if form.is_valid():
+            try:
+                # Estrazione dei dati dal form
+                P = form.cleaned_data['pressione']
+                T0 = form.cleaned_data['temperatura_iniziale']
+                y_CH4_0 = form.cleaned_data['frazione_molare_CH4']
+                y_H2O_0 = form.cleaned_data['frazione_molare_H2O']
+                W = form.cleaned_data['peso_catalizzatore']
+                F_tot = form.cleaned_data['flusso_molare_totale']
+
+                # Verifica che le frazioni molari siano valide
+                if y_CH4_0 + y_H2O_0 > 1.0:
+                    messages.error(request, 'La somma delle frazioni molari non può superare 1.0.')
+                    return render(request, 'steam_reformer_simulation.html', {
+                        'form': form,
+                        'tempo_calcolo': tempo_calcolo,
+                        'plot_html': plot_html
+                    })
+
+                # Altre frazioni molari iniziali
+                y_CO_0 = 0.0
+                y_CO2_0 = 0.0
+                y_H2_0 = 1.0 - y_CH4_0 - y_H2O_0  # Il resto della frazione molare
+
+                y0 = np.array([y_CH4_0, y_H2O_0, y_CO_0, y_CO2_0, y_H2_0, T0])
+
+                # Risoluzione delle ODE
+                start_time = time.time()
+                sol = solve_ivp(
+                    lambda z, y_vars: model(z, y_vars, P, W, F_tot),
+                    [0, W],
+                    y0,
+                    method='RK45',
+                    t_eval=np.linspace(0, W, 100)
+                )
+                end_time = time.time()
+                tempo_calcolo = end_time - start_time
+
+                # Prepara i risultati
+                risultato = {
+                    'z': sol.t.tolist(),
+                    'y': sol.y.tolist()
+                }
+
+                # Genera il grafico interattivo con Plotly
+                fig = go.Figure()
+
+                componenti = ['CH₄', 'H₂O', 'CO', 'CO₂', 'H₂']
+                for i, componente in enumerate(componenti):
+                    fig.add_trace(go.Scatter(
+                        x=sol.t,
+                        y=sol.y[i],
+                        mode='lines',
+                        name=componente
+                    ))
+
+                fig.update_layout(
+                    title="Concentrazioni lungo il reattore",
+                    xaxis_title="Peso del Catalizzatore (kg)",
+                    yaxis_title="Frazione Molare",
+                    template="plotly_dark"
+                )
+
+                plot_html = fig.to_html(full_html=False)
+
+                # Salva i dati nel database
+                simulazione = SteamReformerSimulation.objects.create(
+                    pressione=P,
+                    temperatura_iniziale=T0,
+                    frazione_molare_CH4=y_CH4_0,
+                    frazione_molare_H2O=y_H2O_0,
+                    peso_catalizzatore=W,
+                    flusso_molare_totale=F_tot,
+                    risultato=str(risultato),
+                    tempo_calcolo=tempo_calcolo
+                )
+                simulazione.save()
+            except Exception as e:
+                messages.error(request, f'Errore durante la simulazione: {str(e)}')
+        else:
+            messages.error(request, 'Dati del form non validi.')
+    else:
+        form = SteamReformerSimulationForm()
+
+    # Recupera le ultime simulazioni
+    simulazioni = SteamReformerSimulation.objects.all().order_by('-data')[:10]
+
+    return render(request, 'steam_reformer_simulation.html', {
+        'form': form,
+        'risultato': risultato,
+        'tempo_calcolo': tempo_calcolo,
+        'simulazioni': simulazioni,
+        'plot_html': plot_html
     })
 
 @csrf_exempt
