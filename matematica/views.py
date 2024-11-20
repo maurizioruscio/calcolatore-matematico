@@ -24,6 +24,8 @@ from scipy.integrate import solve_ivp
 import plotly.offline as opy
 import plotly.graph_objs as go
 from .models import SteamReformerSimulation
+import logging
+logger = logging.getLogger(__name__)
 
 def calcolatore_view(request):
     # La tua implementazione attuale
@@ -478,6 +480,17 @@ def steam_reformer_simulation_view(request):
                 )
                 end_time = time.time()
                 tempo_calcolo = end_time - start_time
+                
+                logger.debug(f"Soluzione integratore: success={sol.success}, message={sol.message}")
+                if not sol.success:
+                    messages.error(request, f"Errore durante l'integrazione: {sol.message}")
+                    # Aggiungi un return qui per interrompere l'esecuzione
+                    return render(request, 'steam_reformer_simulation.html', {
+                        'form': form,
+                        'tempo_calcolo': tempo_calcolo,
+                        'simulazioni': simulazioni,
+                        # Aggiungi 'messages' al contesto
+                    })
 
                 # Prepara i risultati
                 risultato = {
