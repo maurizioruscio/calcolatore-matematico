@@ -53,6 +53,70 @@
         {% endif %}
 
         <h1>Calcolo con Py-BOBYQA</h1>
+        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+            <mtable displaystyle="true" columnalign="right left" columnspacing="0em" rowspacing="3pt">
+              <mtr>
+                <mtd>
+                  <munder>
+                    <mo data-mjx-texclass="OP" movablelimits="true">min</mo>
+                    <mrow data-mjx-texclass="ORD">
+                      <mo stretchy="false">(</mo>
+                      <msub>
+                        <mi>x</mi>
+                        <mn>1</mn>
+                      </msub>
+                      <mo>,</mo>
+                      <msub>
+                        <mi>x</mi>
+                        <mn>2</mn>
+                      </msub>
+                      <mo stretchy="false">)</mo>
+                      <mo>&#x2208;</mo>
+                      <msup>
+                        <mrow data-mjx-texclass="ORD">
+                          <mi mathvariant="double-struck">R</mi>
+                        </mrow>
+                        <mn>2</mn>
+                      </msup>
+                    </mrow>
+                  </munder>
+                </mtd>
+                <mtd>
+                  <mstyle scriptlevel="0">
+                    <mspace width="1em"></mspace>
+                  </mstyle>
+                  <mn>100</mn>
+                  <mo stretchy="false">(</mo>
+                  <msub>
+                    <mi>x</mi>
+                    <mn>2</mn>
+                  </msub>
+                  <mo>&#x2212;</mo>
+                  <msubsup>
+                    <mi>x</mi>
+                    <mn>1</mn>
+                    <mn>2</mn>
+                  </msubsup>
+                  <msup>
+                    <mo stretchy="false">)</mo>
+                    <mn>2</mn>
+                  </msup>
+                  <mo>+</mo>
+                  <mo stretchy="false">(</mo>
+                  <mn>1</mn>
+                  <mo>&#x2212;</mo>
+                  <msub>
+                    <mi>x</mi>
+                    <mn>1</mn>
+                  </msub>
+                  <msup>
+                    <mo stretchy="false">)</mo>
+                    <mn>2</mn>
+                  </msup>
+                </mtd>
+              </mtr>
+            </mtable>
+          </math>
         <form method="POST" class="mt-4">
             {% csrf_token %}
             {{ form.as_p }}
