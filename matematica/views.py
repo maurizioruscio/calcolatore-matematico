@@ -19,6 +19,9 @@ from .forms import SteamReformerForm
 import pybobyqa
 from .models import BOBYQACalcolo
 from .forms import BOBYQAForm
+from scipy.integrate import solve_ivp
+import plotly.offline as opy
+import plotly.graph_objs as go
 
 
 def calcolatore_view(request):
@@ -251,6 +254,113 @@ def bobyqa_view(request):
         'risultato': risultato,
         'tempo_calcolo': tempo_calcolo,
         'calcoli': calcoli
+    })
+
+def steam_reformer_simulation_view(request):
+    risultato = None
+    tempo_calcolo = 0
+    graph_div = None  # Variabile per il grafico interattivo
+
+    if request.method == 'POST':
+        form = SteamReformerSimulationForm(request.POST)
+        if form.is_valid():
+            # Estrae i dati dal form
+            P = form.cleaned_data['pressione']
+            T0 = form.cleaned_data['temperatura_iniziale']
+            y_CH4_0 = form.cleaned_data['frazione_molare_CH4']
+            y_H2O_0 = form.cleaned_data['frazione_molare_H2O']
+            W = form.cleaned_data['peso_catalizzatore']
+            F_tot = form.cleaned_data['flusso_molare_totale']
+
+            # Assicura che le frazioni molari sommino a 1
+            y_sum = y_CH4_0 + y_H2O_0
+            y_CH4_0 /= y_sum
+            y_H2O_0 /= y_sum
+
+            # Frazioni molari iniziali per gli altri componenti
+            y_CO_0 = 0.0
+            y_CO2_0 = 0.0
+            y_H2_0 = 0.0
+
+            y0 = np.array([y_CH4_0, y_H2O_0, y_CO_0, y_CO2_0, y_H2_0, T0])
+
+            try:
+                # Risoluzione delle ODE
+                start_time = time.time()
+                sol = solve_ivp(
+                    lambda z, y_vars: model(z, y_vars, P, T0, W, F_tot),
+                    [0, W],
+                    y0,
+                    method='RK45',
+                    t_eval=np.linspace(0, W, 100)
+                )
+                end_time = time.time()
+                tempo_calcolo = end_time - start_time
+
+                # Prepara i risultati per la visualizzazione
+                risultato = {
+                    'z': sol.t.tolist(),
+                    'y': sol.y.tolist()
+                }
+
+                # Genera il grafico interattivo con Plotly
+                z = sol.t  # Posizione lungo il reattore
+                y = sol.y  # Frazioni molari dei componenti
+
+                # Nomi dei componenti
+                component_names = ['CH₄', 'H₂O', 'CO', 'CO₂', 'H₂']
+
+                # Crea le tracce per ogni componente
+                traces = []
+                for i in range(5):
+                    trace = go.Scatter(
+                        x=z,
+                        y=y[i],
+                        mode='lines',
+                        name=component_names[i]
+                    )
+                    traces.append(trace)
+
+                layout = go.Layout(
+                    title='Profili di Concentrazione lungo il Reattore',
+                    xaxis=dict(title='Peso del Catalizzatore (kg)'),
+                    yaxis=dict(title='Frazione Molare'),
+                    hovermode='closest'
+                )
+
+                fig = go.Figure(data=traces, layout=layout)
+                graph_div = opy.plot(fig, auto_open=False, output_type='div')
+
+                # Salva la simulazione nel database
+                simulazione = SteamReformerSimulation.objects.create(
+                    pressione=P,
+                    temperatura_iniziale=T0,
+                    frazione_molare_CH4=y_CH4_0,
+                    frazione_molare_H2O=y_H2O_0,
+                    peso_catalizzatore=W,
+                    flusso_molare_totale=F_tot,
+                    risultato=str(risultato),
+                    tempo_calcolo=tempo_calcolo
+                )
+                simulazione.save()
+                messages.success(request, 'Simulazione eseguita con successo!')
+            except Exception as e:
+                messages.error(request, f'Errore durante la simulazione: {str(e)}')
+                risultato = None
+        else:
+            messages.error(request, 'Dati del form non validi.')
+    else:
+        form = SteamReformerSimulationForm()
+
+    # Recupera le ultime simulazioni
+    simulazioni = SteamReformerSimulation.objects.all().order_by('-data')[:10]
+
+    return render(request, 'steam_reformer_simulation.html', {
+        'form': form,
+        'risultato': risultato,
+        'tempo_calcolo': tempo_calcolo,
+        'simulazioni': simulazioni,
+        'graph_div': graph_div
     })
 
 @csrf_exempt
