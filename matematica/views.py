@@ -472,7 +472,8 @@ def steam_reformer_simulation_view(request):
                     lambda z, y_vars: model(z, y_vars, P, W, F_tot),
                     [0, W],
                     y0,
-                    method='RK45',
+                    #method='RK45',
+                    method='BDF',
                     t_eval=np.linspace(0, W, 5)
                 )
                 end_time = time.time()
