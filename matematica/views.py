@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from sympy import symbols, sympify, diff, integrate, SympifyError, lambdify
-from .models import Calcolo, SteamReformerCalcolo
+from .models import Calcolo, SteamReformerCalcolo, SteamReformerSimulation, BOBYQACalcolo
 import time
 import matplotlib
 matplotlib.use('Agg')  # Utilizza un backend senza interfaccia grafica
