@@ -50,3 +50,18 @@ class SteamReformerSimulation(models.Model):
 
     def __str__(self):
         return f"Simulazione ID {self.id} - {self.data}"
+    
+class ElectricSteamReformerSimulation(models.Model):
+    data = models.DateTimeField(auto_now_add=True)
+    pressione = models.FloatField()
+    temperatura_iniziale = models.FloatField()
+    frazione_molare_CH4 = models.FloatField()
+    frazione_molare_H2O = models.FloatField()
+    peso_catalizzatore = models.FloatField()
+    flusso_molare_totale = models.FloatField()
+    potenza_elettrica = models.FloatField()
+    risultato = models.TextField()
+    tempo_calcolo = models.FloatField()
+
+    def __str__(self):
+        return f"Simulazione del {self.data}"

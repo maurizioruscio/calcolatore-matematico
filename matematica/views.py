@@ -20,6 +20,8 @@ import pybobyqa
 from .models import BOBYQACalcolo
 from .forms import BOBYQAForm
 from .forms import SteamReformerSimulationForm
+from .forms import ElectricSteamReformerSimulationForm
+from .models import ElectricSteamReformerSimulation
 from scipy.integrate import solve_ivp
 import plotly.offline as opy
 import plotly.graph_objs as go
@@ -435,6 +437,42 @@ def model(z, y_vars, P, W, F_tot):
 
     return dydz
 
+def electric_model(z, y_vars, P, W, F_tot, P_elettrica):
+    y = y_vars[:5]  # Frazioni molari
+    T = y_vars[5]   # Temperatura (K)
+
+    # Matrice stechiometrica
+    nu = np.array([
+        [-1,  0,  1],  # CH₄
+        [-1, -1,  1],  # H₂O
+        [ 1, -1, -1],  # CO
+        [ 0,  1, -1],  # CO₂
+        [ 3,  1, -3],  # H₂
+    ])
+
+    # Calcolo delle costanti di equilibrio
+    K_eq = equilibrium_constants(T)
+
+    # Calcolo delle velocità di reazione
+    rates = reaction_rates(P, T, y)
+
+    # Bilancio molare
+    dydz = np.zeros(6)
+    for i in range(5):
+        dydz[i] = np.dot(nu[i, :], rates) / F_tot
+
+    # Bilancio energetico con riscaldamento elettrico
+    delta_H = np.array([206000, -41000, -206000])  # J/mol
+    Q_reazione = np.dot(delta_H, rates)  # J/kg_cat·s
+
+    # Calore fornito elettricamente per unità di peso del catalizzatore
+    Q_elettrico = P_elettrica / W  # W/kg_cat = J/s·kg_cat
+
+    Cp_tot = 100  # J/mol·K (approssimato)
+    dydz[5] = (-Q_reazione + Q_elettrico) / (F_tot * Cp_tot)
+
+    return dydz
+
 def steam_reformer_simulation_view(request):
     risultato = None
     tempo_calcolo = 0
@@ -667,6 +705,124 @@ def steam_reformer_simulation_view(request):
         'simulazioni': simulazioni,
         'plot_html': plot_html
     })
+
+def electric_steam_reformer_simulation_view(request):
+    risultato = None
+    tempo_calcolo = 0
+    plot_html = ""
+
+    if request.method == 'POST':
+        form = ElectricSteamReformerSimulationForm(request.POST)
+        if form.is_valid():
+            try:
+                # Estrazione dei dati dal form
+                P = form.cleaned_data['pressione']
+                T0 = form.cleaned_data['temperatura_iniziale']
+                y_CH4_0 = form.cleaned_data['frazione_molare_CH4']
+                y_H2O_0 = form.cleaned_data['frazione_molare_H2O']
+                W = form.cleaned_data['peso_catalizzatore']
+                F_tot = form.cleaned_data['flusso_molare_totale']
+                P_elettrica = form.cleaned_data['potenza_elettrica']
+
+                # Verifica delle frazioni molari
+                if y_CH4_0 + y_H2O_0 > 1.0:
+                    messages.error(request, 'La somma delle frazioni molari non può superare 1.0.')
+                    return render(request, 'electric_steam_reformer_simulation.html', {'form': form})
+
+                # Altre frazioni molari iniziali
+                y_CO_0 = 0.0
+                y_CO2_0 = 0.0
+                y_H2_0 = 1.0 - y_CH4_0 - y_H2O_0
+
+                y0 = np.array([y_CH4_0, y_H2O_0, y_CO_0, y_CO2_0, y_H2_0, T0])
+
+                # Risoluzione delle ODE
+                start_time = time.time()
+                sol = solve_ivp(
+                    lambda z, y_vars: electric_model(z, y_vars, P, W, F_tot, P_elettrica),
+                    [0, W],
+                    y0,
+                    method='BDF',
+                    t_eval=np.linspace(0, W, 50),
+                    max_step=1.0
+                )
+                end_time = time.time()
+                tempo_calcolo = end_time - start_time
+
+                if not sol.success:
+                    messages.error(request, f"Errore durante l'integrazione: {sol.message}")
+                    return render(request, 'electric_steam_reformer_simulation.html', {'form': form})
+
+                # Prepara i risultati
+                risultato = {
+                    'z': sol.t.tolist(),
+                    'y': sol.y.tolist()
+                }
+
+                # Genera il grafico
+                fig = go.Figure()
+
+                componenti = ['CH₄', 'H₂O', 'CO', 'CO₂', 'H₂']
+                for i, componente in enumerate(componenti):
+                    fig.add_trace(go.Scatter(
+                        x=sol.t,
+                        y=sol.y[i],
+                        mode='lines',
+                        name=componente
+                    ))
+
+                fig.update_layout(
+                    title="Concentrazioni lungo il reattore",
+                    xaxis_title="Peso del Catalizzatore (kg)",
+                    yaxis_title="Frazione Molare",
+                    template="plotly_white"
+                )
+
+                plot_html = fig.to_html(full_html=False)
+
+                # Prepara i risultati finali per il template
+                results = []
+                for i, componente in enumerate(componenti):
+                    final_value = sol.y[i][-1]
+                    results.append({'component': componente, 'value': final_value})
+
+                # Salva la simulazione nel database
+                simulazione = ElectricSteamReformerSimulation.objects.create(
+                    pressione=P,
+                    temperatura_iniziale=T0,
+                    frazione_molare_CH4=y_CH4_0,
+                    frazione_molare_H2O=y_H2O_0,
+                    peso_catalizzatore=W,
+                    flusso_molare_totale=F_tot,
+                    potenza_elettrica=P_elettrica,
+                    risultato=str(risultato),
+                    tempo_calcolo=tempo_calcolo
+                )
+                simulazione.save()
+
+            except Exception as e:
+                messages.error(request, f'Errore durante la simulazione: {str(e)}')
+                return render(request, 'electric_steam_reformer_simulation.html', {'form': form})
+
+        else:
+            messages.error(request, 'Dati del form non validi.')
+            return render(request, 'electric_steam_reformer_simulation.html', {'form': form})
+
+    else:
+        form = ElectricSteamReformerSimulationForm()
+
+    # Recupera le ultime simulazioni
+    simulazioni = ElectricSteamReformerSimulation.objects.all().order_by('-data')[:10]
+
+    return render(request, 'electric_steam_reformer_simulation.html', {
+        'form': form,
+        'risultato': risultato,
+        'tempo_calcolo': tempo_calcolo,
+        'simulazioni': simulazioni,
+        'plot_html': plot_html,
+        'results': results if 'results' in locals() else None
+    })
+
 
 @csrf_exempt
 @api_view(['POST'])
