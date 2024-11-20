@@ -4,7 +4,8 @@ from . import views
 urlpatterns = [
     path('', views.calcolatore_view, name='calcolatore'),
     path('steam-reformer/', views.steam_reformer_view, name='steam_reformer'),
-    path('bobyqa/', views.bobyqa_view, name='bobyqa'), 
+    path('bobyqa/', views.bobyqa_view, name='bobyqa'),
+    path('steam-reformer-simulation/', views.steam_reformer_simulation_view, name='steam_reformer_simulation'), 
     
     # API endpoints
     path('api/calcolatore/', views.calcolatore_api, name='calcolatore_api'),
