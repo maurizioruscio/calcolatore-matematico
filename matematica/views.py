@@ -540,7 +540,8 @@ def steam_reformer_simulation_view(request):
 
     # Recupera le ultime simulazioni
     simulazioni = SteamReformerSimulation.objects.all().order_by('-data')[:10]
-
+    componenti = ['CH₄', 'H₂O', 'CO', 'CO₂', 'H₂']
+    range_risultato = range(len(componenti))
     return render(request, 'steam_reformer_simulation.html', {
         'form': form,
         'risultato': risultato,
