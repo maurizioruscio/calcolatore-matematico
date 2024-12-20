@@ -65,3 +65,15 @@ class ElectricSteamReformerSimulation(models.Model):
 
     def __str__(self):
         return f"Simulazione del {self.data}"
+
+class VesselSimulation(models.Model):
+    data = models.DateTimeField(auto_now_add=True)
+    pressione = models.FloatField()  # Pa
+    diametro = models.FloatField()   # m
+    tensione_ammissibile = models.FloatField() # Pa
+    efficienza_giunto = models.FloatField()    # dimensionless
+    risultato = models.TextField()   # JSON o stringa con i risultati
+    tempo_calcolo = models.FloatField()
+
+    def __str__(self):
+        return f"Vessel Simulation ID {self.id} - {self.data}"
