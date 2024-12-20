@@ -29,6 +29,8 @@ import plotly.offline as opy
 import plotly.graph_objs as go
 from .models import SteamReformerSimulation
 import logging
+import json
+from django.http import JsonResponse
 logger = logging.getLogger(__name__)
 
 def calcolatore_view(request):
