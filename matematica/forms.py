@@ -55,3 +55,9 @@ class ElectricSteamReformerSimulationForm(forms.Form):
     peso_catalizzatore = forms.FloatField(label='Peso del Catalizzatore (kg)', initial=100)
     flusso_molare_totale = forms.FloatField(label='Flusso Molare Totale (mol/s)', initial=10)
     potenza_elettrica = forms.FloatField(label='Potenza Elettrica (W)', initial=10000)
+
+class VesselForm(forms.Form):
+    pressione = forms.FloatField(label='Pressione Interna (Pa)', initial=2e6) # es. 2 MPa
+    diametro = forms.FloatField(label='Diametro Interno (m)', initial=1.0)
+    tensione_ammissibile = forms.FloatField(label='Tensione Ammissibile (Pa)', initial=200e6)
+    efficienza_giunto = forms.FloatField(label='Efficienza Giunto (0-1)', initial=0.85)
