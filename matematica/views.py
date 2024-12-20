@@ -22,6 +22,8 @@ from .forms import BOBYQAForm
 from .forms import SteamReformerSimulationForm
 from .forms import ElectricSteamReformerSimulationForm
 from .models import ElectricSteamReformerSimulation
+from .forms import VesselForm
+from .models import VesselSimulation
 from scipy.integrate import solve_ivp
 import plotly.offline as opy
 import plotly.graph_objs as go
