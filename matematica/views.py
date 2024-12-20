@@ -823,6 +823,69 @@ def electric_steam_reformer_simulation_view(request):
         'results': results if 'results' in locals() else None
     })
 
+def vessel_calculation(P, D, S, E):
+    R = D / 2.0
+    denom = (S * E) - (0.6 * P)
+    if denom <= 0:
+        raise ValueError("Parametri non validi. Verificare i valori.")
+    t = (P * R) / denom
+    return t
+
+def vessel_simulation_view(request):
+    risultato = None
+    tempo_calcolo = 0
+
+    if request.method == 'POST':
+        form = VesselForm(request.POST)
+        if form.is_valid():
+            try:
+                P = form.cleaned_data['pressione']
+                D = form.cleaned_data['diametro']
+                S = form.cleaned_data['tensione_ammissibile']
+                E = form.cleaned_data['efficienza_giunto']
+
+                start_time = time.time()
+                t = vessel_calculation(P, D, S, E)
+                end_time = time.time()
+                tempo_calcolo = end_time - start_time
+
+                risultato = {
+                    'spessore': t,
+                    'input': {
+                        'pressione': P,
+                        'diametro': D,
+                        'tensione_ammissibile': S,
+                        'efficienza_giunto': E
+                    }
+                }
+
+                # Salvataggio nel database
+                simulazione = VesselSimulation.objects.create(
+                    pressione=P,
+                    diametro=D,
+                    tensione_ammissibile=S,
+                    efficienza_giunto=E,
+                    risultato=json.dumps(risultato),
+                    tempo_calcolo=tempo_calcolo
+                )
+                simulazione.save()
+
+            except Exception as e:
+                messages.error(request, f'Errore durante il calcolo: {str(e)}')
+                form = VesselForm()
+        else:
+            messages.error(request, 'Dati del form non validi.')
+    else:
+        form = VesselForm()
+
+    simulazioni = VesselSimulation.objects.all().order_by('-data')[:10]
+
+    return render(request, 'vessel_simulation.html', {
+        'form': form,
+        'risultato': risultato,
+        'tempo_calcolo': tempo_calcolo,
+        'simulazioni': simulazioni
+    })
 
 @csrf_exempt
 @api_view(['POST'])
@@ -937,6 +1000,35 @@ def steam_reformer_api(request):
     
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@csrf_exempt
+def vessel_api(request):
+    if request.method == 'POST':
+        # Leggi i parametri dal body JSON
+        import json
+        data = json.loads(request.body.decode('utf-8'))
+        P = data.get('pressione')
+        D = data.get('diametro')
+        S = data.get('tensione_ammissibile')
+        E = data.get('efficienza_giunto')
+
+        # Esegui il calcolo
+        try:
+            t = vessel_calculation(P, D, S, E)
+            return JsonResponse({
+                'spessore': t,
+                'input': {
+                    'pressione': P,
+                    'diametro': D,
+                    'tensione_ammissibile': S,
+                    'efficienza_giunto': E
+                }
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    else:
+        return JsonResponse({'error': 'Usa il metodo POST con parametri in JSON'}, status=405)
+
 
 @api_view(['GET'])
 def steam_reformer_calcoli_api(request):
