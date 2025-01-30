@@ -36,6 +36,9 @@ def execute_equation_part(code_snippet, input_data):
     allowed_namespace = {
         '__builtins__': {},
         'math': math,
+        'max': max,
+        'abs': abs,
+        'min': min,
         
     }
     # Aggiungo le variabili di input
