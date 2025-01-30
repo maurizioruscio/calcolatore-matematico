@@ -1,0 +1,24 @@
+<!-- matematica/templates/base.html -->
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Titolo di Default{% endblock %}</title>
+</head>
+<body>
+    <header>
+        <h1>Applicazione Calcolatore</h1>
+        <!-- eventuale navbar o link -->
+    </header>
+
+    <main>
+        {% block content %}
+        <!-- qui il contenuto specifico dei template figli -->
+        {% endblock %}
+    </main>
+
+    <footer>
+        <p>Footer</p>
+    </footer>
+</body>
+</html>
