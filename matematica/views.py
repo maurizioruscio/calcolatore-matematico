@@ -32,6 +32,14 @@ import logging
 import json
 from django.http import JsonResponse
 logger = logging.getLogger(__name__)
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.http import JsonResponse
+from .models import EquationPart, EquationTestResult
+from .forms import EquationPartForm, EquationPartTestForm
+from .utils import execute_equation_part
+import json
+import time
 
 def calcolatore_view(request):
     # La tua implementazione attuale
@@ -1039,3 +1047,87 @@ def steam_reformer_calcoli_api(request):
     calcoli = SteamReformerCalcolo.objects.all().order_by('-data')[:10]
     serializer = SteamReformerCalcoloSerializer(calcoli, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+def equation_part_list_view(request):
+    """
+    Vista per elencare tutti gli EquationPart creati,
+    offrendo la possibilità di crearne uno nuovo.
+    """
+    parts = EquationPart.objects.order_by('-created_at')
+    return render(request, 'equation_tester/part_list.html', {'parts': parts})
+
+def equation_part_create_view(request):
+    """
+    Vista per creare un nuovo EquationPart.
+    """
+    if request.method == 'POST':
+        form = EquationPartForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Nuovo pezzo di formula creato con successo!")
+            return redirect('equation_part_list')
+    else:
+        form = EquationPartForm()
+    return render(request, 'equation_tester/part_create.html', {'form': form})
+
+def equation_part_detail_view(request, pk):
+    """
+    Vista di dettaglio di un EquationPart, con possibilità di testare il codice.
+    """
+    part = get_object_or_404(EquationPart, pk=pk)
+    test_form = EquationPartTestForm(initial={'equation_part_id': part.id})
+
+    # Mostra gli ultimi test eseguiti su questo part
+    test_results = EquationTestResult.objects.filter(equation_part=part).order_by('-created_at')[:10]
+
+    return render(request, 'equation_tester/part_detail.html', {
+        'part': part,
+        'test_form': test_form,
+        'test_results': test_results
+    })
+
+def equation_part_test_view(request):
+    """
+    Vista che riceve POST dal form EquationPartTestForm
+    e calcola in modo parziale la formula, restituendo
+    un risultato (o un errore).
+    """
+    if request.method == 'POST':
+        form = EquationPartTestForm(request.POST)
+        if form.is_valid():
+            part_id = form.cleaned_data['equation_part_id']
+            input_data_json = form.cleaned_data['input_data_json']
+
+            part = get_object_or_404(EquationPart, pk=part_id)
+
+            try:
+                input_data = json.loads(input_data_json)
+            except json.JSONDecodeError:
+                messages.error(request, "Formato JSON non valido.")
+                return redirect('equation_part_detail', pk=part_id)
+
+            start_time = time.time()
+            try:
+                result_value = execute_equation_part(part.code_snippet, input_data)
+                error_msg = ""
+            except Exception as e:
+                result_value = None
+                error_msg = f"Errore: {str(e)}"
+
+            end_time = time.time()
+
+            # Salvataggio del test
+            EquationTestResult.objects.create(
+                equation_part=part,
+                input_data=input_data,
+                output_value=result_value if result_value is not None else 0.0,
+                error_message=error_msg
+            )
+
+            if error_msg:
+                messages.error(request, f"Test parziale fallito: {error_msg}")
+            else:
+                messages.success(request, f"Test parziale riuscito, risultato = {result_value}")
+            
+            return redirect('equation_part_detail', pk=part_id)
+    return redirect('equation_part_list')

@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+  <h1>Lista dei Pezzi di Formula (Equation Parts)</h1>
+  <a href="{% url 'equation_part_create' %}" class="btn btn-primary">Crea Nuovo</a>
+  <ul>
+    {% for part in parts %}
+      <li>
+        <a href="{% url 'equation_part_detail' pk=part.id %}">{{ part.name }}</a> 
+        - {{ part.created_at }}
+      </li>
+    {% endfor %}
+  </ul>
+{% endblock %}

@@ -1,5 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
+from .models import EquationPart
 
 class SteamReformerForm(forms.Form):
     portata_molare_idrocarburo = forms.FloatField(
@@ -61,3 +62,20 @@ class VesselForm(forms.Form):
     diametro = forms.FloatField(label='Diametro Interno (m)', initial=1.0)
     tensione_ammissibile = forms.FloatField(label='Tensione Ammissibile (Pa)', initial=200e6)
     efficienza_giunto = forms.FloatField(label='Efficienza Giunto (0-1)', initial=0.85)
+
+class EquationPartForm(forms.ModelForm):
+    class Meta:
+        model = EquationPart
+        fields = ['name', 'description', 'code_snippet']
+
+class EquationPartTestForm(forms.Form):
+    """
+    Usato per testare in modo semplificato un EquationPart
+    con un dizionario di variabili di input.
+    """
+    equation_part_id = forms.IntegerField(widget=forms.HiddenInput())
+    input_data_json = forms.CharField(
+        label="Variabili in formato JSON",
+        widget=forms.Textarea(attrs={'rows': 4}),
+        help_text='Esempio: {"temperature": 300, "pressure": 101325}'
+    )

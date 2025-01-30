@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Dettaglio: {{ part.name }}</h2>
+<p>{{ part.description }}</p>
+<pre>{{ part.code_snippet }}</pre>
+
+<hr>
+<h3>Test Rapido</h3>
+<form method="POST" action="{% url 'equation_part_test' %}">
+  {% csrf_token %}
+  {{ test_form.as_p }}
+  <button type="submit" class="btn btn-primary">Esegui Test</button>
+</form>
+
+<h4>Risultati Recenti</h4>
+<ul>
+  {% for tr in test_results %}
+    <li>
+      <strong>{{ tr.created_at }}:</strong>
+      {% if tr.error_message %}
+        <span class="text-danger">{{ tr.error_message }}</span>
+      {% else %}
+        Risultato: {{ tr.output_value }}
+      {% endif %}
+      <br>Input: {{ tr.input_data }}
+    </li>
+  {% empty %}
+    <li>Nessun test effettuato.</li>
+  {% endfor %}
+</ul>
+{% endblock %}

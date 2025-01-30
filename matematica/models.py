@@ -77,3 +77,31 @@ class VesselSimulation(models.Model):
 
     def __str__(self):
         return f"Vessel Simulation ID {self.id} - {self.data}"
+    
+class EquationPart(models.Model):
+    """
+    Rappresenta un pezzo di formula (o un sotto-modulo) testabile in modo indipendente.
+    Ad esempio: un termine di degrado, un fattore di pressione, ecc.
+    """
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    code_snippet = models.TextField(
+        help_text="Inserisci il codice o la formula Python che calcola questo componente."
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+class EquationTestResult(models.Model):
+    """
+    Memorizza i risultati dei test parziali o totali su un determinato EquationPart.
+    """
+    equation_part = models.ForeignKey(EquationPart, on_delete=models.CASCADE)
+    input_data = models.JSONField(help_text="Dizionario con le variabili usate nel test.")
+    output_value = models.FloatField(null=True, blank=True)
+    error_message = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Test result for {self.equation_part.name} - {self.created_at}"
